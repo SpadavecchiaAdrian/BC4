@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+
+  api:
+    image: 'api-bc4:latest'
+    env_file:
+      - local.env
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/API
+    build:
+      context: .
+      dockerfile: dockerfile
+    # DB must start first
+    depends_on:
+      - DB
+
+  DB:
+    image: postgres:15.3-alpine3.18
+    env_file:
+      - local.env
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    env_file:
+      - local.env
+    ports:
+      - 8888:80
+    # DB must start first
+    depends_on:
+      - DB
