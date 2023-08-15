@@ -60,7 +60,16 @@ def humanReadable(name: str, position: int, points: int) -> str:
         return f"{position}. {name}, {points} pts"
 
 
-def add_matchs(db: Session):
+@app.get(
+    "/matchs_setup",
+    tags=["Only for showcase"],
+    summary="insert example data into db",
+)
+def add_matchs(db: Session = Depends(get_db)):
+    """
+    This is only for show case, it is not part of the challenge.
+    This enpoint add the example data into match table.
+    """
     db.add(
         models.MatchORM(
             team_a_name="Racing",
@@ -114,9 +123,11 @@ async def getRanking(db: Session = Depends(get_db)) -> list[models.Rankings]:
     This endpoint calculate and return the ranking of teams in
     a soccer league
     """
-    # add_matchs(db)
     # get matches data from DB
     matchs = db.query(models.MatchORM).all()
+    # if no matchs on DB, return empty array
+    if len(matchs) == 0:
+        return []
 
     # estimate the points for each team
     points = {}
