@@ -161,3 +161,4 @@ cython_debug/
 
 # ignore all sql lite db
 sql_app.db
+.vscode/
