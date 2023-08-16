@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from pydantic import BaseModel, ConfigDict
 
-from .database import Base
+from app.database import Base
 
 
 class MatchORM(Base):

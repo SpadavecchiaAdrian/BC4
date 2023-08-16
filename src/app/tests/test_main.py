@@ -2,58 +2,23 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from ..database import Base
-from .. import models
-from ..main import pointsFromMatch, humanReadable, app, get_db
+from app.database import Base
+from app import models
+from app.main import pointsFromMatch, humanReadable, app, get_db
 
-# start a db for testing endpoints
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_app.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine
-)
-
-# create tables from models
-Base.metadata.create_all(bind=engine)
+# ---- simple unit test ----
 
 
-# override db dependency with test db
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-# start the app in test mode
-client = TestClient(app)
-
-
-def test_a_tie_pointsFromMatch():
+def test_pointsFromMatch():
     # Test a tie
-
     result = pointsFromMatch(4, 4)
     assert result == [1, 1]
 
-
-def test_team_a_win_pointsFromMatch():
     # Test team TeamPositiona win
-
     result = pointsFromMatch(4, 1)
     assert result == [3, 0]
 
-
-def test_team_b_win_pointsFromMatch():
     # Test team b win
-
     result = pointsFromMatch(3, 4)
     assert result == [0, 3]
 
@@ -73,8 +38,49 @@ def test_humanReadable():
     )
 
 
+# ---- This correspond to End-to-End testing example ----
+# ---- we need to setup a db for the test ----
+
+
+# start a db for testing endpoints
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_app.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine
+)
+
+# create tables from models
+Base.metadata.create_all(bind=engine)
+
+
+# override db dependency for test db
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+
+# start the app in test mode
+client = TestClient(app)
+
+
+# ---- Now we can test endpoints ----
+
+
 def test_get_ranking_endpoint():
     db = TestingSessionLocal()
+    # Clean old matchs
+    db.query(models.MatchORM).delete()
+    # add new matchs
     db.add(
         models.MatchORM(
             team_a_name="Racing",
@@ -119,7 +125,7 @@ def test_get_ranking_endpoint():
 
     response = client.get("/ranking")
     assert response.status_code == 200
-    assert response.json() == [
+    expectedData = [
         {
             "name": "Vélez",
             "position": 1,
@@ -151,3 +157,4 @@ def test_get_ranking_endpoint():
             "humanReadable": "5. Ferro, 0 pts",
         },
     ]
+    assert response.json() == expectedData

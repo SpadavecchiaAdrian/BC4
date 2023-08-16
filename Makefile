@@ -12,7 +12,7 @@ clean-pyc:
 
 local-run: clean-pyc ## Run FastAPI locally
 	echo "launch uvicorn"
-	uvicorn src.main:app --reload
+	cd src; uvicorn app.main:app --reload
 
 local-test: clean-pyc ## run test locally
 	# clean
